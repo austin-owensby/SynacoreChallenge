@@ -698,11 +698,11 @@ namespace SynacoreChallenge
                             file.WriteLine($"not {aValue} {bValue}");
 
                             if(bValue >= registerStartAddress){
-                                memory[aValue] = (ushort)(~memory[bValue] % registerStartAddress);
+                                memory[aValue] = (ushort)( ((ushort)(~memory[bValue])) % registerStartAddress );
                             }
                             else{
-                                ushort test = (ushort)(~bValue % registerStartAddress);
-                                memory[aValue] = (ushort)(~bValue % registerStartAddress);
+                                ushort test = (ushort)( ((ushort)(~bValue)) % registerStartAddress );
+                                memory[aValue] = (ushort)( ((ushort)(~bValue)) % registerStartAddress );
                             }
                             
                             memory[programCounterAddress]++;
