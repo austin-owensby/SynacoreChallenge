@@ -1,5 +1,4 @@
-﻿using System.Collections;
-using System.Text;
+﻿using System.Text;
 using System;
 using System.IO;
 
@@ -74,6 +73,8 @@ namespace SynacoreChallenge
                         else{
                             memory[aValue] = bValue;
                         }
+                        
+                        memory[programCounterAddress]++;
 
                         break;
                     case 2: // push: 2 a
@@ -101,6 +102,8 @@ namespace SynacoreChallenge
                         else{
                             memory[memory[stackPointerAddress]] = aValue;
                         }
+                        
+                        memory[programCounterAddress]++;
 
                         break;
                     case 3: // pop: 3 a
@@ -121,6 +124,8 @@ namespace SynacoreChallenge
                         }
 
                         memory[aValue] = memory[--memory[stackPointerAddress]];
+                        
+                        memory[programCounterAddress]++;
 
                         break;
                     case 4: // eq 4 a b c
@@ -174,6 +179,8 @@ namespace SynacoreChallenge
                         else{
                             memory[aValue] = bValue == cValue ? (ushort)1 : (ushort)0;
                         }
+                        
+                        memory[programCounterAddress]++;
 
                         break;
                     case 5: // gt: 5 a b c
@@ -227,6 +234,8 @@ namespace SynacoreChallenge
                         else{
                             memory[aValue] = bValue > cValue ? (ushort)1 : (ushort)0;
                         }
+                        
+                        memory[programCounterAddress]++;
 
                         break;
                     case 6: // jmp: 6 a
@@ -247,10 +256,10 @@ namespace SynacoreChallenge
                         }
 
                         if(aValue >= registerStartAddress){
-                            programCounter = memory[aValue];
+                            memory[programCounterAddress] = memory[aValue];
                         }
                         else{
-                            programCounter = aValue;
+                            memory[programCounterAddress] = aValue;
                         }
 
                         break;
@@ -286,21 +295,27 @@ namespace SynacoreChallenge
                         if(aValue >= registerStartAddress){
                             if(memory[aValue] != 0){
                                 if(bValue >= registerStartAddress){
-                                    programCounter = memory[bValue];
+                                    memory[programCounterAddress] = memory[bValue];
                                 }
                                 else{
-                                    programCounter = bValue;
+                                    memory[programCounterAddress] = bValue;
                                 }
+                            }
+                            else{
+                                memory[programCounterAddress]++;
                             }
                         }
                         else{
                             if(aValue != 0){
                                 if(bValue >= registerStartAddress){
-                                    programCounter = memory[bValue];
+                                    memory[programCounterAddress] = memory[bValue];
                                 }
                                 else{
-                                    programCounter = bValue;
+                                    memory[programCounterAddress] = bValue;
                                 }
+                            }
+                            else{
+                                memory[programCounterAddress]++;
                             }
                         }
 
@@ -337,24 +352,29 @@ namespace SynacoreChallenge
                         if(aValue >= registerStartAddress){
                             if(memory[aValue] == 0){
                                 if(bValue >= registerStartAddress){
-                                    programCounter = memory[bValue];
+                                    memory[programCounterAddress] = memory[bValue];
                                 }
                                 else{
-                                    programCounter = bValue;
+                                    memory[programCounterAddress] = bValue;
                                 }
+                            }
+                            else{
+                                memory[programCounterAddress]++;
                             }
                         }
                         else{
                             if(aValue == 0){
                                 if(bValue >= registerStartAddress){
-                                    programCounter = memory[bValue];
+                                    memory[programCounterAddress] = memory[bValue];
                                 }
                                 else{
-                                    programCounter = bValue;
+                                    memory[programCounterAddress] = bValue;
                                 }
+                            }else{
+                                memory[programCounterAddress]++;
                             }
                         }
-                        
+                                                
                         break;
                     case 9: // add: 9 a b c
                         programCounter = ++memory[programCounterAddress];
@@ -404,6 +424,8 @@ namespace SynacoreChallenge
                         else{
                             memory[aValue] = (ushort)((bValue + cValue) % registerStartAddress);
                         }
+                        
+                        memory[programCounterAddress]++;
 
                         break;
                     case 10: // mult: a b c
@@ -454,6 +476,8 @@ namespace SynacoreChallenge
                         else{
                             memory[aValue] = (ushort)((bValue * cValue) % registerStartAddress);
                         }
+                        
+                        memory[programCounterAddress]++;
 
                         break;
                     case 11: // mod 11 a b c
@@ -504,6 +528,8 @@ namespace SynacoreChallenge
                         else{
                             memory[aValue] = (ushort)(bValue % cValue);
                         }
+                        
+                        memory[programCounterAddress]++;
 
                         break;
                     case 12: // and: 12 a b c
@@ -554,6 +580,8 @@ namespace SynacoreChallenge
                         else{
                             memory[aValue] = (ushort)(bValue & cValue);
                         }
+                        
+                        memory[programCounterAddress]++;
 
                         break;
                     case 13: // or: 13 a b c
@@ -605,6 +633,8 @@ namespace SynacoreChallenge
                             memory[aValue] = (ushort)(bValue | cValue);
                         }
                         
+                        memory[programCounterAddress]++;
+                        
                         break;
                     case 14: // not: 14 a b
                         programCounter = ++memory[programCounterAddress];
@@ -637,6 +667,8 @@ namespace SynacoreChallenge
                         else{
                             memory[aValue] = (ushort)(~bValue);
                         }
+                        
+                        memory[programCounterAddress]++;
                         
                         break;
                     case 15: // rmem: 15 a b
@@ -678,6 +710,8 @@ namespace SynacoreChallenge
 
                             memory[aValue] = memory[bValue];
                         }
+                        
+                        memory[programCounterAddress]++;
 
                         break;
                     case 16: // wrem: 16 a b
@@ -719,6 +753,8 @@ namespace SynacoreChallenge
 
                             memory[aValue] = bValue;
                         }
+                        
+                        memory[programCounterAddress]++;
 
                         break;
                     case 17: // call: 17 a
@@ -742,10 +778,10 @@ namespace SynacoreChallenge
 
                         if(aValue >= registerStartAddress){
                             memory[memory[stackPointerAddress]] = memory[programCounter + 1];
-                            programCounter = memory[aValue];
+                            memory[programCounterAddress] = memory[aValue];
                         }
                         else{
-                            programCounter = aValue;
+                            memory[programCounterAddress] = aValue;
                         }
 
                         break;
@@ -754,7 +790,7 @@ namespace SynacoreChallenge
                             throw new InvalidOperationException($"Stack is empty, cannot ret. Line {programCounter}.");
                         }
 
-                        programCounter = memory[--memory[stackPointerAddress]];
+                        memory[programCounterAddress] = memory[--memory[stackPointerAddress]];
 
                         break;
                     case 19: // out: 19 a
@@ -769,6 +805,8 @@ namespace SynacoreChallenge
                         var test = Convert.ToChar(aValue);
 
                         Console.Write(Convert.ToChar(aValue));
+                        
+                        memory[programCounterAddress]++;
                         break;
                     case 20: // in: 20 a
                         programCounter = ++memory[programCounterAddress];
@@ -790,15 +828,15 @@ namespace SynacoreChallenge
 
                         memory[aValue] = BitConverter.ToUInt16(input);
 
+                        memory[programCounterAddress]++;
+
                         break;
                     case 21: // noop: 21
+                        memory[programCounterAddress]++;
                         break;
                     default:
                         throw new InvalidOperationException($"{instruction} is not a valid operation. Line {programCounter}.");
                 }
-
-                // Finally increase the program counter
-                memory[programCounterAddress]++;
             }
         }
     }
