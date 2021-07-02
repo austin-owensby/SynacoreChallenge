@@ -29,814 +29,877 @@ namespace SynacoreChallenge
             ushort bValue;
             ushort cValue;
 
-            while(true){
-                uint programCounter = memory[programCounterAddress];
-                
-                if(programCounter >= registerStartAddress){
-                    throw new IndexOutOfRangeException($"The program counter {programCounter} is pointing to an address out of memory.");
-                }
+            // Write instructions to file for debugging
+            using StreamWriter file = new("Assembly.txt");
 
-                uint instruction = memory[programCounter];
+            try{
+                while(true){
+                    uint programCounter = memory[programCounterAddress];
+                    uint stackPointer = memory[stackPointerAddress];
+                    
+                    if(programCounter >= registerStartAddress){
+                        throw new IndexOutOfRangeException($"The program counter {programCounter} is pointing to an address out of memory.");
+                    }
 
-                switch (instruction)
-                {
-                    case 0: // halt: 0
-                        return;
-                    case 1: // set: 1 a b
-                        programCounter = ++memory[programCounterAddress];
+                    switch (memory[programCounter])
+                    {
+                        case 0: // halt: 0
+                            file.WriteLine("halt");
+                            return;
+                        case 1: // set: 1 a b
+                            programCounter = ++memory[programCounterAddress];
 
-                        if(programCounter >= registerStartAddress){
-                            throw new IndexOutOfRangeException($"The program counter {programCounter} is pointing to an address out of memory while trying to get the destination register in the set command.");
-                        }
-
-                        aValue = memory[programCounter];
-
-                        if(aValue < registerStartAddress || aValue >= stackStartAddress){
-                            throw new InvalidOperationException($"{aValue} is an invalid address for the register of the set command. Line {programCounter}.");
-                        }
-
-                        programCounter = ++memory[programCounterAddress];
-
-                        if(programCounter >= registerStartAddress){
-                            throw new IndexOutOfRangeException($"The program counter {programCounter} is pointing to an address out of memory while trying to get the source in the set command.");
-                        }
-
-                        bValue = memory[programCounter];
-
-                        if(bValue >= stackStartAddress){
-                            throw new InvalidOperationException($"{bValue} is an invalid operation for the set command. Line {programCounter}.");
-                        }
-
-                        if(bValue >= registerStartAddress){
-                            memory[aValue] = memory[bValue];
-                        }
-                        else{
-                            memory[aValue] = bValue;
-                        }
-                        
-                        memory[programCounterAddress]++;
-
-                        break;
-                    case 2: // push: 2 a
-                        programCounter = ++memory[programCounterAddress];
-
-                        if(programCounter >= registerStartAddress){
-                            throw new IndexOutOfRangeException($"The program counter {programCounter} is pointing to an address out of memory while trying to get the source in the push command.");
-                        }
-
-                        aValue = memory[programCounter];
-
-                        if(aValue >= stackStartAddress){
-                            throw new InvalidOperationException($"{aValue} is an invalid operation for the push command. Line {programCounter}.");
-                        }
-
-                        ++memory[stackPointerAddress];
-
-                        if(memory[stackPointerAddress] >= stackPointerAddress){
-                            throw new StackOverflowException($"Stack overflow while trying to push. Line {programCounter}.");
-                        }
-
-                        if(aValue >= registerStartAddress){
-                            memory[memory[stackPointerAddress]] = memory[aValue];
-                        }
-                        else{
-                            memory[memory[stackPointerAddress]] = aValue;
-                        }
-                        
-                        memory[programCounterAddress]++;
-
-                        break;
-                    case 3: // pop: 3 a
-                        programCounter = ++memory[programCounterAddress];
-
-                        if(programCounter >= registerStartAddress){
-                            throw new IndexOutOfRangeException($"The program counter {programCounter} is pointing to an address out of memory while trying to get the destination in the pop command.");
-                        }
-
-                        aValue = memory[programCounter];
-
-                        if(aValue >= stackStartAddress){
-                            throw new InvalidOperationException($"{aValue} is an invalid address for the pop command. Line {programCounter}.");
-                        }
-
-                        if(memory[stackPointerAddress] <= stackStartAddress){
-                            throw new InvalidOperationException($"Stack is empty, cannot pop. Line {programCounter}.");
-                        }
-
-                        memory[aValue] = memory[--memory[stackPointerAddress]];
-                        
-                        memory[programCounterAddress]++;
-
-                        break;
-                    case 4: // eq 4 a b c
-                        programCounter = ++memory[programCounterAddress];
-
-                        if(programCounter >= registerStartAddress){
-                            throw new IndexOutOfRangeException($"The program counter {programCounter} is pointing to an address out of memory while trying to get the destination in the eq command.");
-                        }
-
-                        aValue = memory[programCounter];
-
-                        if(aValue >= stackStartAddress){
-                            throw new InvalidOperationException($"{aValue} is an invalid address for the eq command. Line {programCounter}.");
-                        }
-
-                        programCounter = ++memory[programCounterAddress];
-
-                        if(programCounter >= registerStartAddress){
-                            throw new IndexOutOfRangeException($"The program counter {programCounter} is pointing to an address out of memory while trying to get the first source in the eq command.");
-                        }
-
-                        bValue = memory[programCounter];
-
-                        if(bValue >= stackStartAddress){
-                            throw new InvalidOperationException($"{bValue} is an invalid first operation for the eq command. Line {programCounter}.");
-                        }
-                        
-                        programCounter = ++memory[programCounterAddress];
-
-                        if(programCounter >= registerStartAddress){
-                            throw new IndexOutOfRangeException($"The program counter {programCounter} is pointing to an address out of memory while trying to get the second source in the eq command.");
-                        }
-
-                        cValue = memory[programCounter];
-
-                        if(cValue >= stackStartAddress){
-                            throw new InvalidOperationException($"{cValue} is an invalid second operation for the eq command. Line {programCounter} for the second source register of eq command.");
-                        }
-
-                        if(bValue >= registerStartAddress){
-                            if(cValue >= registerStartAddress){
-                                memory[aValue] = memory[bValue] == memory[cValue] ? (ushort)1 : (ushort)0;
+                            if(programCounter >= registerStartAddress){
+                                throw new IndexOutOfRangeException($"The program counter {programCounter} is pointing to an address out of memory while trying to get the destination register in the set command.");
                             }
-                            else{
-                                memory[aValue] = memory[bValue] == cValue ? (ushort)1 : (ushort)0;
+
+                            aValue = memory[programCounter];
+
+                            if(aValue < registerStartAddress || aValue >= stackStartAddress){
+                                throw new InvalidOperationException($"{aValue} is an invalid address for the register of the set command. Line {programCounter}.");
                             }
-                        }
-                        else if(cValue >= registerStartAddress){
-                            memory[aValue] = bValue == memory[cValue] ? (ushort)1 : (ushort)0;
-                        }
-                        else{
-                            memory[aValue] = bValue == cValue ? (ushort)1 : (ushort)0;
-                        }
-                        
-                        memory[programCounterAddress]++;
 
-                        break;
-                    case 5: // gt: 5 a b c
-                        programCounter = ++memory[programCounterAddress];
+                            programCounter = ++memory[programCounterAddress];
 
-                        if(programCounter >= registerStartAddress){
-                            throw new IndexOutOfRangeException($"The program counter {programCounter} is pointing to an address out of memory while trying to get the destination in the gt command.");
-                        }
-
-                        aValue = memory[programCounter];
-
-                        if(aValue >= stackStartAddress){
-                            throw new InvalidOperationException($"{aValue} is an invalid address for the gt command. Line {programCounter}.");
-                        }
-
-                        programCounter = ++memory[programCounterAddress];
-
-                        if(programCounter >= registerStartAddress){
-                            throw new IndexOutOfRangeException($"The program counter {programCounter} is pointing to an address out of memory while trying to get the first source in the gt command.");
-                        }
-
-                        bValue = memory[programCounter];
-
-                        if(bValue >= stackStartAddress){
-                            throw new InvalidOperationException($"{bValue} is an invalid first operation for the gt command. Line {programCounter}.");
-                        }
-                        
-                        programCounter = ++memory[programCounterAddress];
-
-                        if(programCounter >= registerStartAddress){
-                            throw new IndexOutOfRangeException($"The program counter {programCounter} is pointing to an address out of memory while trying to get the second source in the gt command.");
-                        }
-
-                        cValue = memory[programCounter];
-
-                        if(cValue >= stackStartAddress){
-                            throw new InvalidOperationException($"{cValue} is an invalid second operation for the gt command. Line {programCounter}.");
-                        }
-
-                        if(bValue >= registerStartAddress){
-                            if(cValue >= registerStartAddress){
-                                memory[aValue] = memory[bValue] > memory[cValue] ? (ushort)1 : (ushort)0;
+                            if(programCounter >= registerStartAddress){
+                                throw new IndexOutOfRangeException($"The program counter {programCounter} is pointing to an address out of memory while trying to get the source in the set command.");
                             }
-                            else{
-                                memory[aValue] = memory[bValue] > cValue ? (ushort)1 : (ushort)0;
-                            }
-                        }
-                        else if(cValue >= registerStartAddress){
-                            memory[aValue] = bValue > memory[cValue] ? (ushort)1 : (ushort)0;
-                        }
-                        else{
-                            memory[aValue] = bValue > cValue ? (ushort)1 : (ushort)0;
-                        }
-                        
-                        memory[programCounterAddress]++;
 
-                        break;
-                    case 6: // jmp: 6 a
-                        programCounter = ++memory[programCounterAddress];
+                            bValue = memory[programCounter];
 
-                        if(programCounter >= registerStartAddress){
-                            throw new IndexOutOfRangeException($"The program counter {programCounter} is pointing to an address out of memory while trying to get the destination for the jmp command.");
-                        }
-
-                        aValue = memory[programCounter];
-
-                        if(aValue >= stackStartAddress){
-                            throw new InvalidOperationException($"{aValue} is an invalid address for the jmp command. Line {programCounter}.");
-                        }
-
-                        if(aValue >= registerStartAddress && memory[aValue] >= registerStartAddress){
-                            throw new InvalidOperationException($"{memory[aValue]} is an invalid address for the jmp command. Line {programCounter}.");
-                        }
-
-                        if(aValue >= registerStartAddress){
-                            memory[programCounterAddress] = memory[aValue];
-                        }
-                        else{
-                            memory[programCounterAddress] = aValue;
-                        }
-
-                        break;
-                    case 7: // jt: 7 a b
-                        programCounter = ++memory[programCounterAddress];
-
-                        if(programCounter >= registerStartAddress){
-                            throw new IndexOutOfRangeException($"The program counter {programCounter} is pointing to an address out of memory while trying to get the conditional in the jt command.");
-                        }
-
-                        aValue = memory[programCounter];
-
-                        if(aValue >= stackStartAddress){
-                            throw new InvalidOperationException($"{aValue} is an invalid operation for the jt command. Line {programCounter}.");
-                        }
-
-                        programCounter = ++memory[programCounterAddress];
-
-                        if(programCounter >= registerStartAddress){
-                            throw new IndexOutOfRangeException($"The program counter {programCounter} is pointing to an address out of memory while trying to get the destination in the jt command.");
-                        }
-
-                        bValue = memory[programCounter];
-
-                        if(bValue >= stackStartAddress){
-                            throw new InvalidOperationException($"{bValue} is an invalid address for the destination of the jt command. Line {programCounter}.");
-                        }
-
-                        if(bValue >= registerStartAddress && memory[bValue] >= registerStartAddress){
-                            throw new InvalidOperationException($"{memory[bValue]} is an invalid address for the destination of the jt command. Line {programCounter}.");
-                        }
-
-                        if(aValue >= registerStartAddress){
-                            if(memory[aValue] != 0){
-                                if(bValue >= registerStartAddress){
-                                    memory[programCounterAddress] = memory[bValue];
-                                }
-                                else{
-                                    memory[programCounterAddress] = bValue;
-                                }
-                            }
-                            else{
-                                memory[programCounterAddress]++;
-                            }
-                        }
-                        else{
-                            if(aValue != 0){
-                                if(bValue >= registerStartAddress){
-                                    memory[programCounterAddress] = memory[bValue];
-                                }
-                                else{
-                                    memory[programCounterAddress] = bValue;
-                                }
-                            }
-                            else{
-                                memory[programCounterAddress]++;
-                            }
-                        }
-
-                        break;
-                    case 8: // jf: 8 a b
-                        programCounter = ++memory[programCounterAddress];
-
-                        if(programCounter >= registerStartAddress){
-                            throw new IndexOutOfRangeException($"The program counter {programCounter} is pointing to an address out of memory while trying to get the conditional in the jf command.");
-                        }
-
-                        aValue = memory[programCounter];
-
-                        if(aValue >= stackStartAddress){
-                            throw new InvalidOperationException($"{aValue} is an invalid operation for the jf command. Line {programCounter}.");
-                        }
-
-                        programCounter = ++memory[programCounterAddress];
-
-                        if(programCounter >= registerStartAddress){
-                            throw new IndexOutOfRangeException($"The program counter {programCounter} is pointing to an address out of memory while trying to get the destination in the jf command.");
-                        }
-
-                        bValue = memory[programCounter];
-
-                        if(bValue >= stackStartAddress){
-                            throw new InvalidOperationException($"{bValue} is an invalid address for the destination of the jf command. Line {programCounter}.");
-                        }
-
-                        if(bValue >= registerStartAddress && memory[bValue] >= registerStartAddress){
-                            throw new InvalidOperationException($"{memory[bValue]} is an invalid address for the destination of the jf command. Line {programCounter}.");
-                        }
-
-                        if(aValue >= registerStartAddress){
-                            if(memory[aValue] == 0){
-                                if(bValue >= registerStartAddress){
-                                    memory[programCounterAddress] = memory[bValue];
-                                }
-                                else{
-                                    memory[programCounterAddress] = bValue;
-                                }
-                            }
-                            else{
-                                memory[programCounterAddress]++;
-                            }
-                        }
-                        else{
-                            if(aValue == 0){
-                                if(bValue >= registerStartAddress){
-                                    memory[programCounterAddress] = memory[bValue];
-                                }
-                                else{
-                                    memory[programCounterAddress] = bValue;
-                                }
-                            }else{
-                                memory[programCounterAddress]++;
-                            }
-                        }
-                                                
-                        break;
-                    case 9: // add: 9 a b c
-                        programCounter = ++memory[programCounterAddress];
-
-                        if(programCounter >= registerStartAddress){
-                            throw new IndexOutOfRangeException($"The program counter {programCounter} is pointing to an address out of memory while trying to get the destination in the add command.");
-                        }
-
-                        aValue = memory[programCounter];
-
-                        if(aValue >= stackStartAddress){
-                            throw new InvalidOperationException($"{aValue} is an invalid address for the add command. Line {programCounter}.");
-                        }
-
-                        programCounter = ++memory[programCounterAddress];
-
-                        if(programCounter >= registerStartAddress){
-                            throw new IndexOutOfRangeException($"The program counter {programCounter} is pointing to an address out of memory while trying to get the first source in the add command.");
-                        }
-
-                        bValue = memory[programCounter];
-
-                        if(bValue >= stackStartAddress){
-                            throw new InvalidOperationException($"{bValue} is an invalid first operation for the add command. Line {programCounter}.");
-                        }
-                        
-                        programCounter = ++memory[programCounterAddress];
-
-                        if(programCounter >= registerStartAddress){
-                            throw new IndexOutOfRangeException($"The program counter {programCounter} is pointing to an address out of memory while trying to get the second source in the add command.");
-                        }
-
-                        cValue = memory[programCounter];
-
-                        if(cValue >= stackStartAddress){
-                            throw new InvalidOperationException($"{cValue} is an invalid second operation for the add command. Line {programCounter}.");
-                        }
-                        
-                        if(bValue >= registerStartAddress){
-                            if(cValue >= registerStartAddress){
-                                memory[aValue] = (ushort)((memory[bValue] + memory[cValue]) % registerStartAddress);
-                            }
-                            else{
-                                memory[aValue] = (ushort)((memory[bValue] + cValue) % registerStartAddress);
-                            }
-                        }
-                        else{
-                            memory[aValue] = (ushort)((bValue + cValue) % registerStartAddress);
-                        }
-                        
-                        memory[programCounterAddress]++;
-
-                        break;
-                    case 10: // mult: a b c
-                        programCounter = ++memory[programCounterAddress];
-
-                        if(programCounter >= registerStartAddress){
-                            throw new IndexOutOfRangeException($"The program counter {programCounter} is pointing to an address out of memory while trying to get the destination in the mult command.");
-                        }
-
-                        aValue = memory[programCounter];
-
-                        if(aValue >= stackStartAddress){
-                            throw new InvalidOperationException($"{aValue} is an invalid address for the mult command. Line {programCounter}.");
-                        }
-
-                        programCounter = ++memory[programCounterAddress];
-
-                        if(programCounter >= registerStartAddress){
-                            throw new IndexOutOfRangeException($"The program counter {programCounter} is pointing to an address out of memory while trying to get the first source in the mult command.");
-                        }
-
-                        bValue = memory[programCounter];
-
-                        if(bValue >= stackStartAddress){
-                            throw new InvalidOperationException($"{bValue} is an invalid first operation for the mult command. Line {programCounter}.");
-                        }
-                        
-                        programCounter = ++memory[programCounterAddress];
-
-                        if(programCounter >= registerStartAddress){
-                            throw new IndexOutOfRangeException($"The program counter {programCounter} is pointing to an address out of memory while trying to get the second source in the mult command.");
-                        }
-
-                        cValue = memory[programCounter];
-
-                        if(cValue >= stackStartAddress){
-                            throw new InvalidOperationException($"{cValue} is an invalid second operation for the mult command. Line {programCounter}.");
-                        }
-                        
-                        if(bValue >= registerStartAddress){
-                            if(cValue >= registerStartAddress){
-                                memory[aValue] = (ushort)((memory[bValue] * memory[cValue]) % registerStartAddress);
-                            }
-                            else{
-                                memory[aValue] = (ushort)((memory[bValue] * cValue) % registerStartAddress);
-                            }
-                        }
-                        else{
-                            memory[aValue] = (ushort)((bValue * cValue) % registerStartAddress);
-                        }
-                        
-                        memory[programCounterAddress]++;
-
-                        break;
-                    case 11: // mod 11 a b c
-                        programCounter = ++memory[programCounterAddress];
-
-                        if(programCounter >= registerStartAddress){
-                            throw new IndexOutOfRangeException($"The program counter {programCounter} is pointing to an address out of memory while trying to get the destination in the mod command.");
-                        }
-
-                        aValue = memory[programCounter];
-
-                        if(aValue >= stackStartAddress){
-                            throw new InvalidOperationException($"{aValue} is an invalid address for the mod command. Line {programCounter}.");
-                        }
-
-                        programCounter = ++memory[programCounterAddress];
-
-                        if(programCounter >= registerStartAddress){
-                            throw new IndexOutOfRangeException($"The program counter {programCounter} is pointing to an address out of memory while trying to get the first source in the mod command.");
-                        }
-
-                        bValue = memory[programCounter];
-
-                        if(bValue >= stackStartAddress){
-                            throw new InvalidOperationException($"{bValue} is an invalid first operation for the mod command. Line {programCounter}.");
-                        }
-                        
-                        programCounter = ++memory[programCounterAddress];
-
-                        if(programCounter >= registerStartAddress){
-                            throw new IndexOutOfRangeException($"The program counter {programCounter} is pointing to an address out of memory while trying to get the second source in the mod command.");
-                        }
-
-                        cValue = memory[programCounter];
-
-                        if(cValue >= stackStartAddress){
-                            throw new InvalidOperationException($"{cValue} is an invalid second operation for the mod command. Line {programCounter}.");
-                        }
-                        
-                        if(bValue >= registerStartAddress){
-                            if(cValue >= registerStartAddress){
-                                memory[aValue] = (ushort)(memory[bValue] % memory[cValue]);
-                            }
-                            else{
-                                memory[aValue] = (ushort)(memory[bValue] % cValue);
-                            }
-                        }
-                        else{
-                            memory[aValue] = (ushort)(bValue % cValue);
-                        }
-                        
-                        memory[programCounterAddress]++;
-
-                        break;
-                    case 12: // and: 12 a b c
-                        programCounter = ++memory[programCounterAddress];
-
-                        if(programCounter >= registerStartAddress){
-                            throw new IndexOutOfRangeException($"The program counter {programCounter} is pointing to an address out of memory while trying to get the destination in the and command.");
-                        }
-
-                        aValue = memory[programCounter];
-
-                        if(aValue >= stackStartAddress){
-                            throw new InvalidOperationException($"{aValue} is an invalid address for the and command. Line {programCounter}.");
-                        }
-
-                        programCounter = ++memory[programCounterAddress];
-
-                        if(programCounter >= registerStartAddress){
-                            throw new IndexOutOfRangeException($"The program counter {programCounter} is pointing to an address out of memory while trying to get the first source in the and command.");
-                        }
-
-                        bValue = memory[programCounter];
-
-                        if(bValue >= stackStartAddress){
-                            throw new InvalidOperationException($"{bValue} is an invalid first operation for the and command. Line {programCounter}.");
-                        }
-                        
-                        programCounter = ++memory[programCounterAddress];
-
-                        if(programCounter >= registerStartAddress){
-                            throw new IndexOutOfRangeException($"The program counter {programCounter} is pointing to an address out of memory while trying to get the second source in the and command.");
-                        }
-
-                        cValue = memory[programCounter];
-
-                        if(cValue >= stackStartAddress){
-                            throw new InvalidOperationException($"{cValue} is an invalid second operation for the and command. Line {programCounter}.");
-                        }
-                        
-                        if(bValue >= registerStartAddress){
-                            if(cValue >= registerStartAddress){
-                                memory[aValue] = (ushort)(memory[bValue] & memory[cValue]);
-                            }
-                            else{
-                                memory[aValue] = (ushort)(memory[bValue] & cValue);
-                            }
-                        }
-                        else{
-                            memory[aValue] = (ushort)(bValue & cValue);
-                        }
-                        
-                        memory[programCounterAddress]++;
-
-                        break;
-                    case 13: // or: 13 a b c
-                        programCounter = ++memory[programCounterAddress];
-
-                        if(programCounter >= registerStartAddress){
-                            throw new IndexOutOfRangeException($"The program counter {programCounter} is pointing to an address out of memory while trying to get the destination in the or command.");
-                        }
-
-                        aValue = memory[programCounter];
-
-                        if(aValue >= stackStartAddress){
-                            throw new InvalidOperationException($"{aValue} is an invalid address for the or command. Line {programCounter}.");
-                        }
-
-                        programCounter = ++memory[programCounterAddress];
-
-                        if(programCounter >= registerStartAddress){
-                            throw new IndexOutOfRangeException($"The program counter {programCounter} is pointing to an address out of memory while trying to get the first source in the or command.");
-                        }
-
-                        bValue = memory[programCounter];
-
-                        if(bValue >= stackStartAddress){
-                            throw new InvalidOperationException($"{bValue} is an invalid first operation for the or command. Line {programCounter}.");
-                        }
-                        
-                        programCounter = ++memory[programCounterAddress];
-
-                        if(programCounter >= registerStartAddress){
-                            throw new IndexOutOfRangeException($"The program counter {programCounter} is pointing to an address out of memory while trying to get the second source in the or command.");
-                        }
-
-                        cValue = memory[programCounter];
-
-                        if(cValue >= stackStartAddress){
-                            throw new InvalidOperationException($"{cValue} is an invalid second operation for the or command. Line {programCounter}.");
-                        }
-                        
-                        if(bValue >= registerStartAddress){
-                            if(cValue >= registerStartAddress){
-                                memory[aValue] = (ushort)(memory[bValue] | memory[cValue]);
-                            }
-                            else{
-                                memory[aValue] = (ushort)(memory[bValue] | cValue);
-                            }
-                        }
-                        else{
-                            memory[aValue] = (ushort)(bValue | cValue);
-                        }
-                        
-                        memory[programCounterAddress]++;
-                        
-                        break;
-                    case 14: // not: 14 a b
-                        programCounter = ++memory[programCounterAddress];
-
-                        if(programCounter >= registerStartAddress){
-                            throw new IndexOutOfRangeException($"The program counter {programCounter} is pointing to an address out of memory while trying to get the destination in the not command.");
-                        }
-
-                        aValue = memory[programCounter];
-
-                        if(aValue >= stackStartAddress){
-                            throw new InvalidOperationException($"{aValue} is an invalid address for the not command. Line {programCounter}.");
-                        }
-
-                        programCounter = ++memory[programCounterAddress];
-
-                        if(programCounter >= registerStartAddress){
-                            throw new IndexOutOfRangeException($"The program counter {programCounter} is pointing to an address out of memory while trying to get the first source in the not command.");
-                        }
-
-                        bValue = memory[programCounter];
-
-                        if(bValue >= stackStartAddress){
-                            throw new InvalidOperationException($"{bValue} is an invalid first operation for the not command. Line {programCounter}.");
-                        }
-                        
-                        if(bValue >= registerStartAddress){
-                            memory[aValue] = (ushort)(~memory[bValue]);
-                        }
-                        else{
-                            memory[aValue] = (ushort)(~bValue);
-                        }
-                        
-                        memory[programCounterAddress]++;
-                        
-                        break;
-                    case 15: // rmem: 15 a b
-                        programCounter = ++memory[programCounterAddress];
-
-                        if(programCounter >= registerStartAddress){
-                            throw new IndexOutOfRangeException($"The program counter {programCounter} is pointing to an address out of memory while trying to get the destination in the rmem command.");
-                        }
-
-                        aValue = memory[programCounter];
-
-                        if(aValue >= stackStartAddress){
-                            throw new InvalidOperationException($"{aValue} is an invalid address for the rmem command. Line {programCounter}.");
-                        }
-
-                        programCounter = ++memory[programCounterAddress];
-
-                        if(programCounter >= registerStartAddress){
-                            throw new IndexOutOfRangeException($"The program counter {programCounter} is pointing to an address out of memory while trying to get the first source in the rmem command.");
-                        }
-
-                        bValue = memory[programCounter];
-
-                        if(bValue >= stackStartAddress){
-                            throw new InvalidOperationException($"{bValue} is an invalid first operation for the rmem command. Line {programCounter}.");
-                        }
-                        
-                        if(bValue >= registerStartAddress){
-                            if(memory[bValue] >= registerStartAddress){
-                                throw new InvalidOperationException("${memory[bValue]} is an invalid memory address to read from the rmem command. Line {programCounter}.");
-                            }
+                            if(bValue >= stackStartAddress){
+                                throw new InvalidOperationException($"{bValue} is an invalid operation for the set command. Line {programCounter}.");
+                            }                                
                             
-                            memory[aValue] = memory[memory[bValue]];
-                        }
-                        else{
+                            file.WriteLine($"set {aValue} {bValue}");
+
                             if(bValue >= registerStartAddress){
-                                throw new InvalidOperationException("${bValue} is an invalid memory address to read from the rmem command. Line {programCounter}.");
+                                memory[aValue] = memory[bValue];
                             }
-
-                            memory[aValue] = memory[bValue];
-                        }
-                        
-                        memory[programCounterAddress]++;
-
-                        break;
-                    case 16: // wrem: 16 a b
-                        programCounter = ++memory[programCounterAddress];
-
-                        if(programCounter >= registerStartAddress){
-                            throw new IndexOutOfRangeException($"The program counter {programCounter} is pointing to an address out of memory while trying to get the destination in the wmem command.");
-                        }
-
-                        aValue = memory[programCounter];
-
-                        if(aValue >= stackStartAddress){
-                            throw new InvalidOperationException($"{aValue} is an invalid address for the wmem command. Line {programCounter}.");
-                        }
-
-                        programCounter = ++memory[programCounterAddress];
-
-                        if(programCounter >= registerStartAddress){
-                            throw new IndexOutOfRangeException($"The program counter {programCounter} is pointing to an address out of memory while trying to get the first source in the wmem command.");
-                        }
-
-                        bValue = memory[programCounter];
-
-                        if(bValue >= stackStartAddress){
-                            throw new InvalidOperationException($"{bValue} is an invalid first operation for the wmem command. Line {programCounter}.");
-                        }
-                        
-                        if(bValue >= registerStartAddress){
-                            if(memory[aValue] >= registerStartAddress){
-                                throw new InvalidOperationException("${memory[aValue]} is an invalid memory address to write to the wmem command. Line {programCounter}.");
+                            else{
+                                memory[aValue] = bValue;
                             }
                             
-                            memory[memory[aValue]] = memory[bValue];
-                        }
-                        else{
-                            if(aValue >= registerStartAddress){
-                                throw new InvalidOperationException("${aValue} is an invalid memory address to write to the wmem command. Line {programCounter}.");
+                            memory[programCounterAddress]++;
+
+                            break;
+                        case 2: // push: 2 a
+                            programCounter = ++memory[programCounterAddress];
+
+                            if(programCounter >= registerStartAddress){
+                                throw new IndexOutOfRangeException($"The program counter {programCounter} is pointing to an address out of memory while trying to get the source in the push command.");
                             }
 
-                            memory[aValue] = bValue;
-                        }
-                        
-                        memory[programCounterAddress]++;
+                            aValue = memory[programCounter];
 
-                        break;
-                    case 17: // call: 17 a
-                        programCounter = ++memory[programCounterAddress];
+                            if(aValue >= stackStartAddress){
+                                throw new InvalidOperationException($"{aValue} is an invalid operation for the push command. Line {programCounter}.");
+                            }
 
-                        if(programCounter >= registerStartAddress){
-                            throw new IndexOutOfRangeException($"The program counter {programCounter} is pointing to an address out of memory while trying to get the destination in the call command.");
-                        }
+                            stackPointer = ++memory[stackPointerAddress];
 
-                        aValue = memory[programCounter];
+                            if(stackPointer >= stackPointerAddress){
+                                throw new StackOverflowException($"Stack overflow while trying to push. Line {programCounter}.");
+                            }
 
-                        if(aValue >= stackStartAddress){
-                            throw new InvalidOperationException($"{aValue} is an invalid address for the call command. Line {programCounter}.");
-                        }
+                            file.WriteLine($"push {aValue}");
 
-                        ++memory[stackPointerAddress];
+                            if(aValue >= registerStartAddress){
+                                memory[stackPointer] = memory[aValue];
+                            }
+                            else{
+                                memory[stackPointer] = aValue;
+                            }
+                            
+                            memory[programCounterAddress]++;
 
-                        if(memory[stackPointerAddress] >= stackPointerAddress){
-                            throw new StackOverflowException($"Stack overflow while trying to call. Line {programCounter}.");
-                        }
+                            break;
+                        case 3: // pop: 3 a
+                            programCounter = ++memory[programCounterAddress];
 
-                        if(aValue >= registerStartAddress){
-                            memory[memory[stackPointerAddress]] = memory[programCounter + 1];
-                            memory[programCounterAddress] = memory[aValue];
-                        }
-                        else{
-                            memory[programCounterAddress] = aValue;
-                        }
+                            if(programCounter >= registerStartAddress){
+                                throw new IndexOutOfRangeException($"The program counter {programCounter} is pointing to an address out of memory while trying to get the destination in the pop command.");
+                            }
 
-                        break;
-                    case 18: // ret: 18
-                        if(memory[stackPointerAddress] <= stackStartAddress){
-                            throw new InvalidOperationException($"Stack is empty, cannot ret. Line {programCounter}.");
-                        }
+                            aValue = memory[programCounter];
 
-                        memory[programCounterAddress] = memory[--memory[stackPointerAddress]];
+                            if(aValue >= stackStartAddress){
+                                throw new InvalidOperationException($"{aValue} is an invalid address for the pop command. Line {programCounter}.");
+                            }
 
-                        break;
-                    case 19: // out: 19 a
-                        programCounter = ++memory[programCounterAddress];
+                            stackPointer = memory[stackPointerAddress];
 
-                        if(programCounter >= registerStartAddress){
-                            throw new IndexOutOfRangeException($"The program counter {programCounter} is pointing to an address out of memory while trying to output a value to the console.");
-                        }
+                            if(stackPointer <= stackStartAddress){
+                                throw new InvalidOperationException($"Stack is empty, cannot pop. Line {programCounter}.");
+                            }
 
-                        aValue = memory[programCounter];
-                        
-                        var test = Convert.ToChar(aValue);
+                            memory[aValue] = memory[stackPointer];
 
-                        Console.Write(Convert.ToChar(aValue));
-                        
-                        memory[programCounterAddress]++;
-                        break;
-                    case 20: // in: 20 a
-                        programCounter = ++memory[programCounterAddress];
+                            file.WriteLine($"pop {aValue}");
 
-                        if(programCounter >= registerStartAddress){
-                            throw new IndexOutOfRangeException($"The program counter {programCounter} is pointing to an address out of memory while trying to get the destination in the in command.");
-                        }
+                            memory[stackPointerAddress]--;
+                            
+                            memory[programCounterAddress]++;
 
-                        aValue = memory[programCounter];
+                            break;
+                        case 4: // eq 4 a b c
+                            programCounter = ++memory[programCounterAddress];
 
-                        if(aValue >= stackStartAddress){
-                            throw new InvalidOperationException($"{aValue} is an invalid address for the in command. Line {programCounter}.");
-                        }
+                            if(programCounter >= registerStartAddress){
+                                throw new IndexOutOfRangeException($"The program counter {programCounter} is pointing to an address out of memory while trying to get the destination in the eq command.");
+                            }
 
-                        byte[] input = Encoding.ASCII.GetBytes(Console.ReadLine());
-                        if(input.Length > 2){
-                            throw new InvalidOperationException($"Input stream is too long for in command. Line {programCounter}");
-                        }
+                            aValue = memory[programCounter];
 
-                        memory[aValue] = BitConverter.ToUInt16(input);
+                            if(aValue >= stackStartAddress){
+                                throw new InvalidOperationException($"{aValue} is an invalid address for the eq command. Line {programCounter}.");
+                            }
 
-                        memory[programCounterAddress]++;
+                            programCounter = ++memory[programCounterAddress];
 
-                        break;
-                    case 21: // noop: 21
-                        memory[programCounterAddress]++;
-                        break;
-                    default:
-                        throw new InvalidOperationException($"{instruction} is not a valid operation. Line {programCounter}.");
+                            if(programCounter >= registerStartAddress){
+                                throw new IndexOutOfRangeException($"The program counter {programCounter} is pointing to an address out of memory while trying to get the first source in the eq command.");
+                            }
+
+                            bValue = memory[programCounter];
+
+                            if(bValue >= stackStartAddress){
+                                throw new InvalidOperationException($"{bValue} is an invalid first operation for the eq command. Line {programCounter}.");
+                            }
+                            
+                            programCounter = ++memory[programCounterAddress];
+
+                            if(programCounter >= registerStartAddress){
+                                throw new IndexOutOfRangeException($"The program counter {programCounter} is pointing to an address out of memory while trying to get the second source in the eq command.");
+                            }
+
+                            cValue = memory[programCounter];
+
+                            if(cValue >= stackStartAddress){
+                                throw new InvalidOperationException($"{cValue} is an invalid second operation for the eq command. Line {programCounter} for the second source register of eq command.");
+                            }
+
+                            file.WriteLine($"eq {aValue} {bValue} {cValue}");
+
+                            if(bValue >= registerStartAddress){
+                                if(cValue >= registerStartAddress){
+                                    memory[aValue] = memory[bValue] == memory[cValue] ? (ushort)1 : (ushort)0;
+                                }
+                                else{
+                                    memory[aValue] = memory[bValue] == cValue ? (ushort)1 : (ushort)0;
+                                }
+                            }
+                            else if(cValue >= registerStartAddress){
+                                memory[aValue] = bValue == memory[cValue] ? (ushort)1 : (ushort)0;
+                            }
+                            else{
+                                memory[aValue] = bValue == cValue ? (ushort)1 : (ushort)0;
+                            }
+                            
+                            memory[programCounterAddress]++;
+
+                            break;
+                        case 5: // gt: 5 a b c
+                            programCounter = ++memory[programCounterAddress];
+
+                            if(programCounter >= registerStartAddress){
+                                throw new IndexOutOfRangeException($"The program counter {programCounter} is pointing to an address out of memory while trying to get the destination in the gt command.");
+                            }
+
+                            aValue = memory[programCounter];
+
+                            if(aValue >= stackStartAddress){
+                                throw new InvalidOperationException($"{aValue} is an invalid address for the gt command. Line {programCounter}.");
+                            }
+
+                            programCounter = ++memory[programCounterAddress];
+
+                            if(programCounter >= registerStartAddress){
+                                throw new IndexOutOfRangeException($"The program counter {programCounter} is pointing to an address out of memory while trying to get the first source in the gt command.");
+                            }
+
+                            bValue = memory[programCounter];
+
+                            if(bValue >= stackStartAddress){
+                                throw new InvalidOperationException($"{bValue} is an invalid first operation for the gt command. Line {programCounter}.");
+                            }
+                            
+                            programCounter = ++memory[programCounterAddress];
+
+                            if(programCounter >= registerStartAddress){
+                                throw new IndexOutOfRangeException($"The program counter {programCounter} is pointing to an address out of memory while trying to get the second source in the gt command.");
+                            }
+
+                            cValue = memory[programCounter];
+
+                            if(cValue >= stackStartAddress){
+                                throw new InvalidOperationException($"{cValue} is an invalid second operation for the gt command. Line {programCounter}.");
+                            }
+                            
+                            file.WriteLine($"gt {aValue} {bValue} {cValue}");
+
+                            if(bValue >= registerStartAddress){
+                                if(cValue >= registerStartAddress){
+                                    memory[aValue] = memory[bValue] > memory[cValue] ? (ushort)1 : (ushort)0;
+                                }
+                                else{
+                                    memory[aValue] = memory[bValue] > cValue ? (ushort)1 : (ushort)0;
+                                }
+                            }
+                            else if(cValue >= registerStartAddress){
+                                memory[aValue] = bValue > memory[cValue] ? (ushort)1 : (ushort)0;
+                            }
+                            else{
+                                memory[aValue] = bValue > cValue ? (ushort)1 : (ushort)0;
+                            }
+                            
+                            memory[programCounterAddress]++;
+
+                            break;
+                        case 6: // jmp: 6 a
+                            programCounter = ++memory[programCounterAddress];
+
+                            if(programCounter >= registerStartAddress){
+                                throw new IndexOutOfRangeException($"The program counter {programCounter} is pointing to an address out of memory while trying to get the destination for the jmp command.");
+                            }
+
+                            aValue = memory[programCounter];
+
+                            if(aValue >= stackStartAddress){
+                                throw new InvalidOperationException($"{aValue} is an invalid address for the jmp command. Line {programCounter}.");
+                            }
+
+                            if(aValue >= registerStartAddress && memory[aValue] >= registerStartAddress){
+                                throw new InvalidOperationException($"{memory[aValue]} is an invalid address for the jmp command. Line {programCounter}.");
+                            }
+
+                            file.WriteLine($"jmp {aValue}");
+
+                            if(aValue >= registerStartAddress){
+                                memory[programCounterAddress] = memory[aValue];
+                            }
+                            else{
+                                memory[programCounterAddress] = aValue;
+                            }
+
+                            break;
+                        case 7: // jt: 7 a b
+                            programCounter = ++memory[programCounterAddress];
+
+                            if(programCounter >= registerStartAddress){
+                                throw new IndexOutOfRangeException($"The program counter {programCounter} is pointing to an address out of memory while trying to get the conditional in the jt command.");
+                            }
+
+                            aValue = memory[programCounter];
+
+                            if(aValue >= stackStartAddress){
+                                throw new InvalidOperationException($"{aValue} is an invalid operation for the jt command. Line {programCounter}.");
+                            }
+
+                            programCounter = ++memory[programCounterAddress];
+
+                            if(programCounter >= registerStartAddress){
+                                throw new IndexOutOfRangeException($"The program counter {programCounter} is pointing to an address out of memory while trying to get the destination in the jt command.");
+                            }
+
+                            bValue = memory[programCounter];
+
+                            if(bValue >= stackStartAddress){
+                                throw new InvalidOperationException($"{bValue} is an invalid address for the destination of the jt command. Line {programCounter}.");
+                            }
+
+                            if(bValue >= registerStartAddress && memory[bValue] >= registerStartAddress){
+                                throw new InvalidOperationException($"{memory[bValue]} is an invalid address for the destination of the jt command. Line {programCounter}.");
+                            }
+
+                            file.WriteLine($"jt {aValue} {bValue}");
+
+                            if(aValue >= registerStartAddress){
+                                if(memory[aValue] != 0){
+                                    if(bValue >= registerStartAddress){
+                                        memory[programCounterAddress] = memory[bValue];
+                                    }
+                                    else{
+                                        memory[programCounterAddress] = bValue;
+                                    }
+                                }
+                                else{
+                                    memory[programCounterAddress]++;
+                                }
+                            }
+                            else{
+                                if(aValue != 0){
+                                    if(bValue >= registerStartAddress){
+                                        memory[programCounterAddress] = memory[bValue];
+                                    }
+                                    else{
+                                        memory[programCounterAddress] = bValue;
+                                    }
+                                }
+                                else{
+                                    memory[programCounterAddress]++;
+                                }
+                            }
+
+                            break;
+                        case 8: // jf: 8 a b
+                            programCounter = ++memory[programCounterAddress];
+
+                            if(programCounter >= registerStartAddress){
+                                throw new IndexOutOfRangeException($"The program counter {programCounter} is pointing to an address out of memory while trying to get the conditional in the jf command.");
+                            }
+
+                            aValue = memory[programCounter];
+
+                            if(aValue >= stackStartAddress){
+                                throw new InvalidOperationException($"{aValue} is an invalid operation for the jf command. Line {programCounter}.");
+                            }
+
+                            programCounter = ++memory[programCounterAddress];
+
+                            if(programCounter >= registerStartAddress){
+                                throw new IndexOutOfRangeException($"The program counter {programCounter} is pointing to an address out of memory while trying to get the destination in the jf command.");
+                            }
+
+                            bValue = memory[programCounter];
+
+                            if(bValue >= stackStartAddress){
+                                throw new InvalidOperationException($"{bValue} is an invalid address for the destination of the jf command. Line {programCounter}.");
+                            }
+
+                            if(bValue >= registerStartAddress && memory[bValue] >= registerStartAddress){
+                                throw new InvalidOperationException($"{memory[bValue]} is an invalid address for the destination of the jf command. Line {programCounter}.");
+                            }
+
+                            file.WriteLine($"jf {aValue} {bValue}");
+
+                            if(aValue >= registerStartAddress){
+                                if(memory[aValue] == 0){
+                                    if(bValue >= registerStartAddress){
+                                        memory[programCounterAddress] = memory[bValue];
+                                    }
+                                    else{
+                                        memory[programCounterAddress] = bValue;
+                                    }
+                                }
+                                else{
+                                    memory[programCounterAddress]++;
+                                }
+                            }
+                            else{
+                                if(aValue == 0){
+                                    if(bValue >= registerStartAddress){
+                                        memory[programCounterAddress] = memory[bValue];
+                                    }
+                                    else{
+                                        memory[programCounterAddress] = bValue;
+                                    }
+                                }else{
+                                    memory[programCounterAddress]++;
+                                }
+                            }
+                                                    
+                            break;
+                        case 9: // add: 9 a b c
+                            programCounter = ++memory[programCounterAddress];
+
+                            if(programCounter >= registerStartAddress){
+                                throw new IndexOutOfRangeException($"The program counter {programCounter} is pointing to an address out of memory while trying to get the destination in the add command.");
+                            }
+
+                            aValue = memory[programCounter];
+
+                            if(aValue >= stackStartAddress){
+                                throw new InvalidOperationException($"{aValue} is an invalid address for the add command. Line {programCounter}.");
+                            }
+
+                            programCounter = ++memory[programCounterAddress];
+
+                            if(programCounter >= registerStartAddress){
+                                throw new IndexOutOfRangeException($"The program counter {programCounter} is pointing to an address out of memory while trying to get the first source in the add command.");
+                            }
+
+                            bValue = memory[programCounter];
+
+                            if(bValue >= stackStartAddress){
+                                throw new InvalidOperationException($"{bValue} is an invalid first operation for the add command. Line {programCounter}.");
+                            }
+                            
+                            programCounter = ++memory[programCounterAddress];
+
+                            if(programCounter >= registerStartAddress){
+                                throw new IndexOutOfRangeException($"The program counter {programCounter} is pointing to an address out of memory while trying to get the second source in the add command.");
+                            }
+
+                            cValue = memory[programCounter];
+
+                            if(cValue >= stackStartAddress){
+                                throw new InvalidOperationException($"{cValue} is an invalid second operation for the add command. Line {programCounter}.");
+                            }
+
+                            file.WriteLine($"add {aValue} {bValue} {cValue}");
+
+                            if(bValue >= registerStartAddress){
+                                if(cValue >= registerStartAddress){
+                                    memory[aValue] = (ushort)((memory[bValue] + memory[cValue]) % registerStartAddress);
+                                }
+                                else{
+                                    memory[aValue] = (ushort)((memory[bValue] + cValue) % registerStartAddress);
+                                }
+                            }
+                            else{
+                                memory[aValue] = (ushort)((bValue + cValue) % registerStartAddress);
+                            }
+                            
+                            memory[programCounterAddress]++;
+
+                            break;
+                        case 10: // mult: a b c
+                            programCounter = ++memory[programCounterAddress];
+
+                            if(programCounter >= registerStartAddress){
+                                throw new IndexOutOfRangeException($"The program counter {programCounter} is pointing to an address out of memory while trying to get the destination in the mult command.");
+                            }
+
+                            aValue = memory[programCounter];
+
+                            if(aValue >= stackStartAddress){
+                                throw new InvalidOperationException($"{aValue} is an invalid address for the mult command. Line {programCounter}.");
+                            }
+
+                            programCounter = ++memory[programCounterAddress];
+
+                            if(programCounter >= registerStartAddress){
+                                throw new IndexOutOfRangeException($"The program counter {programCounter} is pointing to an address out of memory while trying to get the first source in the mult command.");
+                            }
+
+                            bValue = memory[programCounter];
+
+                            if(bValue >= stackStartAddress){
+                                throw new InvalidOperationException($"{bValue} is an invalid first operation for the mult command. Line {programCounter}.");
+                            }
+                            
+                            programCounter = ++memory[programCounterAddress];
+
+                            if(programCounter >= registerStartAddress){
+                                throw new IndexOutOfRangeException($"The program counter {programCounter} is pointing to an address out of memory while trying to get the second source in the mult command.");
+                            }
+
+                            cValue = memory[programCounter];
+
+                            if(cValue >= stackStartAddress){
+                                throw new InvalidOperationException($"{cValue} is an invalid second operation for the mult command. Line {programCounter}.");
+                            }
+
+                            file.WriteLine($"mult {aValue} {bValue} {cValue}");
+
+                            if(bValue >= registerStartAddress){
+                                if(cValue >= registerStartAddress){
+                                    memory[aValue] = (ushort)((memory[bValue] * memory[cValue]) % registerStartAddress);
+                                }
+                                else{
+                                    memory[aValue] = (ushort)((memory[bValue] * cValue) % registerStartAddress);
+                                }
+                            }
+                            else{
+                                memory[aValue] = (ushort)((bValue * cValue) % registerStartAddress);
+                            }
+                            
+                            memory[programCounterAddress]++;
+
+                            break;
+                        case 11: // mod 11 a b c
+                            programCounter = ++memory[programCounterAddress];
+
+                            if(programCounter >= registerStartAddress){
+                                throw new IndexOutOfRangeException($"The program counter {programCounter} is pointing to an address out of memory while trying to get the destination in the mod command.");
+                            }
+
+                            aValue = memory[programCounter];
+
+                            if(aValue >= stackStartAddress){
+                                throw new InvalidOperationException($"{aValue} is an invalid address for the mod command. Line {programCounter}.");
+                            }
+
+                            programCounter = ++memory[programCounterAddress];
+
+                            if(programCounter >= registerStartAddress){
+                                throw new IndexOutOfRangeException($"The program counter {programCounter} is pointing to an address out of memory while trying to get the first source in the mod command.");
+                            }
+
+                            bValue = memory[programCounter];
+
+                            if(bValue >= stackStartAddress){
+                                throw new InvalidOperationException($"{bValue} is an invalid first operation for the mod command. Line {programCounter}.");
+                            }
+                            
+                            programCounter = ++memory[programCounterAddress];
+
+                            if(programCounter >= registerStartAddress){
+                                throw new IndexOutOfRangeException($"The program counter {programCounter} is pointing to an address out of memory while trying to get the second source in the mod command.");
+                            }
+
+                            cValue = memory[programCounter];
+
+                            if(cValue >= stackStartAddress){
+                                throw new InvalidOperationException($"{cValue} is an invalid second operation for the mod command. Line {programCounter}.");
+                            }
+                            
+                            file.WriteLine($"mod {aValue} {bValue} {cValue}");
+
+                            if(bValue >= registerStartAddress){
+                                if(cValue >= registerStartAddress){
+                                    memory[aValue] = (ushort)(memory[bValue] % memory[cValue]);
+                                }
+                                else{
+                                    memory[aValue] = (ushort)(memory[bValue] % cValue);
+                                }
+                            }
+                            else{
+                                memory[aValue] = (ushort)(bValue % cValue);
+                            }
+                            
+                            memory[programCounterAddress]++;
+
+                            break;
+                        case 12: // and: 12 a b c
+                            programCounter = ++memory[programCounterAddress];
+
+                            if(programCounter >= registerStartAddress){
+                                throw new IndexOutOfRangeException($"The program counter {programCounter} is pointing to an address out of memory while trying to get the destination in the and command.");
+                            }
+
+                            aValue = memory[programCounter];
+
+                            if(aValue >= stackStartAddress){
+                                throw new InvalidOperationException($"{aValue} is an invalid address for the and command. Line {programCounter}.");
+                            }
+
+                            programCounter = ++memory[programCounterAddress];
+
+                            if(programCounter >= registerStartAddress){
+                                throw new IndexOutOfRangeException($"The program counter {programCounter} is pointing to an address out of memory while trying to get the first source in the and command.");
+                            }
+
+                            bValue = memory[programCounter];
+
+                            if(bValue >= stackStartAddress){
+                                throw new InvalidOperationException($"{bValue} is an invalid first operation for the and command. Line {programCounter}.");
+                            }
+                            
+                            programCounter = ++memory[programCounterAddress];
+
+                            if(programCounter >= registerStartAddress){
+                                throw new IndexOutOfRangeException($"The program counter {programCounter} is pointing to an address out of memory while trying to get the second source in the and command.");
+                            }
+
+                            cValue = memory[programCounter];
+
+                            if(cValue >= stackStartAddress){
+                                throw new InvalidOperationException($"{cValue} is an invalid second operation for the and command. Line {programCounter}.");
+                            }
+
+                            file.WriteLine($"and {aValue} {bValue} {cValue}");
+
+                            if(bValue >= registerStartAddress){
+                                if(cValue >= registerStartAddress){
+                                    memory[aValue] = (ushort)(memory[bValue] & memory[cValue]);
+                                }
+                                else{
+                                    memory[aValue] = (ushort)(memory[bValue] & cValue);
+                                }
+                            }
+                            else{
+                                memory[aValue] = (ushort)(bValue & cValue);
+                            }
+                            
+                            memory[programCounterAddress]++;
+
+                            break;
+                        case 13: // or: 13 a b c
+                            programCounter = ++memory[programCounterAddress];
+
+                            if(programCounter >= registerStartAddress){
+                                throw new IndexOutOfRangeException($"The program counter {programCounter} is pointing to an address out of memory while trying to get the destination in the or command.");
+                            }
+
+                            aValue = memory[programCounter];
+
+                            if(aValue >= stackStartAddress){
+                                throw new InvalidOperationException($"{aValue} is an invalid address for the or command. Line {programCounter}.");
+                            }
+
+                            programCounter = ++memory[programCounterAddress];
+
+                            if(programCounter >= registerStartAddress){
+                                throw new IndexOutOfRangeException($"The program counter {programCounter} is pointing to an address out of memory while trying to get the first source in the or command.");
+                            }
+
+                            bValue = memory[programCounter];
+
+                            if(bValue >= stackStartAddress){
+                                throw new InvalidOperationException($"{bValue} is an invalid first operation for the or command. Line {programCounter}.");
+                            }
+                            
+                            programCounter = ++memory[programCounterAddress];
+
+                            if(programCounter >= registerStartAddress){
+                                throw new IndexOutOfRangeException($"The program counter {programCounter} is pointing to an address out of memory while trying to get the second source in the or command.");
+                            }
+
+                            cValue = memory[programCounter];
+
+                            if(cValue >= stackStartAddress){
+                                throw new InvalidOperationException($"{cValue} is an invalid second operation for the or command. Line {programCounter}.");
+                            }
+                            
+                            file.WriteLine($"or {aValue} {bValue} {cValue}");
+
+                            if(bValue >= registerStartAddress){
+                                if(cValue >= registerStartAddress){
+                                    memory[aValue] = (ushort)(memory[bValue] | memory[cValue]);
+                                }
+                                else{
+                                    memory[aValue] = (ushort)(memory[bValue] | cValue);
+                                }
+                            }
+                            else{
+                                memory[aValue] = (ushort)(bValue | cValue);
+                            }
+                            
+                            memory[programCounterAddress]++;
+                            
+                            break;
+                        case 14: // not: 14 a b
+                            programCounter = ++memory[programCounterAddress];
+
+                            if(programCounter >= registerStartAddress){
+                                throw new IndexOutOfRangeException($"The program counter {programCounter} is pointing to an address out of memory while trying to get the destination in the not command.");
+                            }
+
+                            aValue = memory[programCounter];
+
+                            if(aValue >= stackStartAddress){
+                                throw new InvalidOperationException($"{aValue} is an invalid address for the not command. Line {programCounter}.");
+                            }
+
+                            programCounter = ++memory[programCounterAddress];
+
+                            if(programCounter >= registerStartAddress){
+                                throw new IndexOutOfRangeException($"The program counter {programCounter} is pointing to an address out of memory while trying to get the first source in the not command.");
+                            }
+
+                            bValue = memory[programCounter];
+
+                            if(bValue >= stackStartAddress){
+                                throw new InvalidOperationException($"{bValue} is an invalid first operation for the not command. Line {programCounter}.");
+                            }
+                            
+                            file.WriteLine($"not {aValue} {bValue}");
+
+                            if(bValue >= registerStartAddress){
+                                memory[aValue] = (ushort)(~memory[bValue] % registerStartAddress);
+                            }
+                            else{
+                                ushort test = (ushort)(~bValue % registerStartAddress);
+                                memory[aValue] = (ushort)(~bValue % registerStartAddress);
+                            }
+                            
+                            memory[programCounterAddress]++;
+                            
+                            break;
+                        case 15: // rmem: 15 a b
+                            programCounter = ++memory[programCounterAddress];
+
+                            if(programCounter >= registerStartAddress){
+                                throw new IndexOutOfRangeException($"The program counter {programCounter} is pointing to an address out of memory while trying to get the destination in the rmem command.");
+                            }
+
+                            aValue = memory[programCounter];
+
+                            if(aValue >= stackStartAddress){
+                                throw new InvalidOperationException($"{aValue} is an invalid address for the rmem command. Line {programCounter}.");
+                            }
+
+                            programCounter = ++memory[programCounterAddress];
+
+                            if(programCounter >= registerStartAddress){
+                                throw new IndexOutOfRangeException($"The program counter {programCounter} is pointing to an address out of memory while trying to get the first source in the rmem command.");
+                            }
+
+                            bValue = memory[programCounter];
+
+                            if(bValue >= stackStartAddress){
+                                throw new InvalidOperationException($"{bValue} is an invalid first operation for the rmem command. Line {programCounter}.");
+                            }
+                            
+                            file.WriteLine($"rmem {aValue} {bValue}");
+
+                            if(bValue >= registerStartAddress){
+                                if(memory[bValue] >= registerStartAddress){
+                                    throw new InvalidOperationException("${memory[bValue]} is an invalid memory address to read from the rmem command. Line {programCounter}.");
+                                }
+                                
+                                memory[aValue] = memory[memory[bValue]];
+                            }
+                            else{
+                                if(bValue >= registerStartAddress){
+                                    throw new InvalidOperationException("${bValue} is an invalid memory address to read from the rmem command. Line {programCounter}.");
+                                }
+
+                                memory[aValue] = memory[bValue];
+                            }
+                            
+                            memory[programCounterAddress]++;
+
+                            break;
+                        case 16: // wmem: 16 a b
+                            programCounter = ++memory[programCounterAddress];
+
+                            if(programCounter >= registerStartAddress){
+                                throw new IndexOutOfRangeException($"The program counter {programCounter} is pointing to an address out of memory while trying to get the destination in the wmem command.");
+                            }
+
+                            aValue = memory[programCounter];
+
+                            if(aValue >= stackStartAddress){
+                                throw new InvalidOperationException($"{aValue} is an invalid address for the wmem command. Line {programCounter}.");
+                            }
+
+                            programCounter = ++memory[programCounterAddress];
+
+                            if(programCounter >= registerStartAddress){
+                                throw new IndexOutOfRangeException($"The program counter {programCounter} is pointing to an address out of memory while trying to get the first source in the wmem command.");
+                            }
+
+                            bValue = memory[programCounter];
+
+                            if(bValue >= stackStartAddress){
+                                throw new InvalidOperationException($"{bValue} is an invalid first operation for the wmem command. Line {programCounter}.");
+                            }
+
+                            file.WriteLine($"wmem {aValue} {bValue}");
+
+                            if(bValue >= registerStartAddress){
+                                if(memory[aValue] >= registerStartAddress){
+                                    throw new InvalidOperationException("${memory[aValue]} is an invalid memory address to write to the wmem command. Line {programCounter}.");
+                                }
+                                
+                                memory[memory[aValue]] = memory[bValue];
+                            }
+                            else{
+                                if(aValue >= registerStartAddress){
+                                    throw new InvalidOperationException("${aValue} is an invalid memory address to write to the wmem command. Line {programCounter}.");
+                                }
+
+                                memory[aValue] = bValue;
+                            }
+                            
+                            memory[programCounterAddress]++;
+
+                            break;
+                        case 17: // call: 17 a
+                            programCounter = ++memory[programCounterAddress];
+
+                            if(programCounter >= registerStartAddress){
+                                throw new IndexOutOfRangeException($"The program counter {programCounter} is pointing to an address out of memory while trying to get the destination in the call command.");
+                            }
+
+                            aValue = memory[programCounter];
+
+                            if(aValue >= stackStartAddress){
+                                throw new InvalidOperationException($"{aValue} is an invalid address for the call command. Line {programCounter}.");
+                            }
+
+                            ++memory[stackPointerAddress];
+
+                            if(memory[stackPointerAddress] >= stackPointerAddress){
+                                throw new StackOverflowException($"Stack overflow while trying to call. Line {programCounter}.");
+                            }
+
+                            file.WriteLine($"call {aValue}");
+
+                            if(aValue >= registerStartAddress){
+                                memory[memory[stackPointerAddress]] = memory[programCounter + 1];
+                                memory[programCounterAddress] = memory[aValue];
+                            }
+                            else{
+                                memory[programCounterAddress] = aValue;
+                            }
+
+                            break;
+                        case 18: // ret: 18
+                            if(memory[stackPointerAddress] <= stackStartAddress){
+                                throw new InvalidOperationException($"Stack is empty, cannot ret. Line {programCounter}.");
+                            }
+
+                            file.WriteLine("ret");
+
+                            memory[programCounterAddress] = memory[--memory[stackPointerAddress]];
+
+                            break;
+                        case 19: // out: 19 a
+                            programCounter = ++memory[programCounterAddress];
+
+                            if(programCounter >= registerStartAddress){
+                                throw new IndexOutOfRangeException($"The program counter {programCounter} is pointing to an address out of memory while trying to output a value to the console.");
+                            }
+
+                            aValue = memory[programCounter];
+
+                            if(aValue >= stackStartAddress){
+                                throw new InvalidOperationException($"{aValue} is an invalid address for the out command. Line {programCounter}.");
+                            }
+
+                            file.WriteLine($"out {aValue}");
+
+                            if(aValue >= registerStartAddress){
+                                Console.Write(Convert.ToChar(memory[aValue]));
+                            }
+                            else{
+                                Console.Write(Convert.ToChar(aValue));
+                            }
+                            
+                            memory[programCounterAddress]++;
+                            break;
+                        case 20: // in: 20 a
+                            programCounter = ++memory[programCounterAddress];
+
+                            if(programCounter >= registerStartAddress){
+                                throw new IndexOutOfRangeException($"The program counter {programCounter} is pointing to an address out of memory while trying to get the destination in the in command.");
+                            }
+
+                            aValue = memory[programCounter];
+
+                            if(aValue >= stackStartAddress){
+                                throw new InvalidOperationException($"{aValue} is an invalid address for the in command. Line {programCounter}.");
+                            }
+
+                            byte[] input = Encoding.ASCII.GetBytes(Console.ReadLine());
+                            if(input.Length > 2){
+                                throw new InvalidOperationException($"Input stream is too long for in command. Line {programCounter}");
+                            }
+
+                            file.WriteLine($"in {aValue}");
+
+                            memory[aValue] = BitConverter.ToUInt16(input);
+
+                            memory[programCounterAddress]++;
+
+                            break;
+                        case 21: // noop: 21
+                            memory[programCounterAddress]++;
+                            file.WriteLine($"noop");
+                            break;
+                        default:
+                            throw new InvalidOperationException($"{memory[programCounter]} is not a valid operation. Line {programCounter}.");
+                    }
                 }
+            }
+            catch(Exception e){
+                file.WriteLine(e.Message);
+                Console.WriteLine($"Error {e.Message}");
+                return;
             }
         }
     }
